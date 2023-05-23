@@ -106,4 +106,4 @@ app.get('/api/users', (req, res) => {
   // Logic for fetching users
   res.json({ message: 'Get all users' });
 });
-app.listen(4242, () => console.log('Running on port 4242'));
+app.listen(process.env.PORT, () => console.log('Running...'));
