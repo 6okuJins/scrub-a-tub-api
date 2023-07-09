@@ -1,0 +1,39 @@
+{
+  "taxRateID": "txr_1NRiurF1mktuyQCaAAAC6Cgc",
+  "serviceType": {
+    "maid":{
+      "value": "maid",
+      "label": "Maid Service",
+      "price": 100,
+      "id": "prod_NdqactFJsUrnWB",
+      "priceIDMonthly": "price_1MsYtKF1mktuyQCaHK2SCAMJ",
+      "priceIDBiweekly": "price_1MsYtKF1mktuyQCalnPZtO9j",
+      "priceIDWeekly": "price_1MsYtKF1mktuyQCa3qHcRAJA",
+      "priceID": "price_1MsYtJF1mktuyQCaPg7m59XQ"
+    },
+    "postReno":{
+      "value": "postReno",
+      "label": "Post-Renovation / Construction Cleaning",
+      "price": 200,
+      "id": "prod_Ndqac3SPI0fGjG",
+      "priceIDMonthly": "price_1MsYtLF1mktuyQCaQ4hojgHL",
+      "priceIDBiweekly": "price_1MsYtLF1mktuyQCaO0XxpGzN",
+      "priceIDWeekly": "price_1MsYtLF1mktuyQCagZY8EKjp",
+      "priceID": "price_1MsYtKF1mktuyQCabnOFpAEY"
+    }
+  },
+  "houseDetails": {
+    "bathrooms": {
+      "priceID": "price_1MsaspF1mktuyQCaa0pYXzpt",
+      "priceIDWeekly": "price_1MsasqF1mktuyQCa7zccDa06",
+      "priceIDBiweekly": "price_1MsasqF1mktuyQCayR5Zapgz",
+      "priceIDMonthly": "price_1MsasqF1mktuyQCaDenFk2We"
+    },
+    "bedrooms": {
+      "priceID": "price_1MsasoF1mktuyQCa5A6ypXvt",
+      "priceIDWeekly": "price_1MsaspF1mktuyQCabHoCIEVe",
+      "priceIDBiweekly": "price_1MsaspF1mktuyQCaqNdkxPCm",
+      "priceIDMonthly": "price_1MsasqF1mktuyQCaR3ccQZP3"
+    }
+  }
+}

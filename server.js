@@ -1,9 +1,12 @@
 // This is your test secret API key.
-const stripe = require('stripe')('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');
+require('dotenv').config();
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const express = require('express');
+// get and deconstruct the services.test.json file into its component objects
+const { taxRateID, serviceType, houseDetails } = require('./services.test.json');
 const app = express();
 const cors = require('cors');
-
+console.log(process.env.STRIPE_SECRET_KEY);
 app.use(cors());
 app.use(express.static('public'));
 
@@ -20,7 +23,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
     return {
       price: cart.frequency.value == 'biweekly' ? extra.priceIDBiweekly : cart.frequency.value == 'monthly' ? extra.priceIDMonthly : cart.frequency.value == 'weekly' ? extra.priceIDWeekly : extra.priceID,
       quantity: (extra?.quantity || 1),
-      tax_rates: ['txr_1N7qzWF1mktuyQCa1ztzi1IA']
+      tax_rates: [taxRateID]
     }
   });
   const totalFullPrice = (cart.serviceType.price + cart.extras.reduce((acc, item) => acc + item.price * (item.quantity || 1), 0) + (cart.houseDetails.bedrooms?.price || 0) + (cart.houseDetails.bathrooms?.price || 0))*100;
@@ -70,25 +73,25 @@ app.post('/api/create-checkout-session', async (req, res) => {
           unit_amount: Math.round(totalFullPrice/10),
         },
         quantity: 1,
-        tax_rates: ['txr_1N7qzWF1mktuyQCa1ztzi1IA']
+        tax_rates: [taxRateID]
       }] : []),
 
       {
         // add the service type price
         price: (cart.frequency.value == 'weekly' ? cart.serviceType.priceIDWeekly : cart.frequency.value == 'biweekly' ? cart.serviceType.priceIDBiweekly : cart.frequency.value == 'monthly' ? cart.serviceType.priceIDMonthly : cart.serviceType.priceID),
         quantity: 1,
-        tax_rates: ['txr_1N7qzWF1mktuyQCa1ztzi1IA']
+        tax_rates: [taxRateID]
       },
       {
         // add extra bedrooms price
-        price: (cart.frequency.value == 'weekly' ? 'price_1N7oXCF1mktuyQCam1T5iaEX' : cart.frequency.value == 'biweekly' ? 'price_1N7oXCF1mktuyQCakUso2Zgo' : cart.frequency.value == 'monthly' ? 'price_1N7oXCF1mktuyQCasLYNH9r6' :  'price_1N7oXCF1mktuyQCaK7ilR9An'),
+        price: (cart.frequency.value == 'weekly' ? houseDetails.bedrooms.priceIDWeekly : cart.frequency.value == 'biweekly' ? houseDetails.bedrooms.priceIDBiweekly : cart.frequency.value == 'monthly' ? houseDetails.bedrooms.priceIDMonthly :  houseDetails.bedrooms.priceID),
         quantity: cart.houseDetails.bedrooms.value,
-        tax_rates: ['txr_1N7qzWF1mktuyQCa1ztzi1IA']
+        tax_rates: [taxRateID]
       }, // add extra bathrooms price
       ...(cart.houseDetails.bathrooms.value > 0 ? [{
-        price: (cart.frequency.value == 'weekly' ? 'price_1N7mS0F1mktuyQCaHdSKqnm0' : cart.frequency.value == 'biweekly' ? 'price_1N7mS0F1mktuyQCacluPKqXo' : cart.frequency.value == 'monthly' ? 'price_1N7mS0F1mktuyQCaZEF17536' :  'price_1N7mS0F1mktuyQCapQkORoZB'),
+        price: (cart.frequency.value == 'weekly' ? houseDetails.bathrooms.priceIDWeekly : cart.frequency.value == 'biweekly' ? houseDetails.bathrooms.priceIDBiweekly : cart.frequency.value == 'monthly' ? houseDetails.bathrooms.priceIDMonthly :  houseDetails.bathrooms.priceID),
         quantity: cart.houseDetails.bathrooms.value,
-        tax_rates: ['txr_1N7qzWF1mktuyQCa1ztzi1IA']
+        tax_rates: [taxRateID]
       }] : []),
     ].concat(extraItems),
     discounts: (cart.frequency.value == 'once' ? [{
@@ -102,8 +105,34 @@ app.post('/api/create-checkout-session', async (req, res) => {
 
   res.json({ id: session.id });
 });
+app.post('/stripe-webhook', express.raw({type: 'application/json'}), (request, response) => {
+  const sig = request.headers['stripe-signature'];
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
+  } catch (err) {
+    response.status(400).send(`Webhook Error: ${err.message}`);
+    return;
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      const paymentIntentSucceeded = event.data.object;
+      // Then define and call a function to handle the event payment_intent.succeeded
+      break;
+    // ... handle other event types
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+  }
+
+  // Return a 200 response to acknowledge receipt of the event
+  response.send();
+});
 app.get('/api/users', (req, res) => {
   // Logic for fetching users
   res.json({ message: 'Get all users' });
 });
-app.listen(process.env.PORT, () => console.log('Running...'));
+app.listen(process.env.PORT, () => console.log(process.env.PORT));
