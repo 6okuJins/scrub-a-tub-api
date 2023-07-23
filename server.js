@@ -1,20 +1,94 @@
 // This is your test secret API key.
 require('dotenv').config();
+
+var admin = require("firebase-admin");
+
+
+
+admin.initializeApp({
+  credential: admin.credential.cert({
+    type: process.env.FIREBASE_TYPE,
+    project_id: process.env.FIREBASE_PROJECT_ID,
+    private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+    private_key: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    client_email: process.env.FIREBASE_CLIENT_EMAIL,
+    client_id: process.env.FIREBASE_CLIENT_ID,
+    auth_uri: process.env.FIREBASE_AUTH_URI,
+    token_uri: process.env.FIREBASE_TOKEN_URI,
+    auth_provider_x509_cert_url: process.env.FIREBASE_AUTH_PROVIDER_X509_CERT_URL,
+    client_x509_cert_url: process.env.FIREBASE_CLIENT_X509_CERT_URL,
+    universe_domain: process.env.FIREBASE_UNIVERSE_DOMAIN
+  })
+});
+
+const db = admin.firestore();
+
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const express = require('express');
 // get and deconstruct the services.test.json file into its component objects
 const { taxRateID, serviceType, houseDetails } = require('./services.test.json');
 const app = express();
 const cors = require('cors');
-console.log(process.env.STRIPE_SECRET_KEY);
+
 app.use(cors());
 app.use(express.static('public'));
+// this needs to go before the express.json() middleware
+app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (request, response) => {
+  const sig = request.headers['stripe-signature'];
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(request.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+  } catch (err) {
+    response.status(400).send(`Webhook Error: ${err.message}`);
+    return;
+  }
+
+  // Handle the event
+  switch (event.type) {
+    case 'payment_intent.succeeded':
+      const paymentIntentSucceeded = event.data.object;
+      // Then define and call a function to handle the event payment_intent.succeeded
+      break;
+    // ... handle other event types
+    case 'checkout.session.completed':
+      const checkoutSessionCompleted = event.data.object;
+      // if the checkoutSessionCompleted object does not have a customer_details.address.line1 property, then it is the first time the user has checked out
+      // since it is the first time, we need to access the user document in the database using client_reference_id, and then set the stripeID from stripe to data base, and then get the billing address from the database onto stripe
+      const userRef = db.collection('users').doc(checkoutSessionCompleted.client_reference_id);
+      if (!checkoutSessionCompleted.customer_details.address.line1) {
+        const billingAddress = await userRef.get().then((doc) => doc.data().billingAddress);
+        userRef.set({stripeID: checkoutSessionCompleted.customer}, {merge: true});
+        // update the customer's billing address on stripe
+        stripe.customers.update(
+          checkoutSessionCompleted.customer,
+          {
+            address: {
+              line1: billingAddress.address,
+              line2: billingAddress.aptNumber,
+              city: billingAddress.city,
+              state: billingAddress.province,
+              postal_code: billingAddress.postalCode,
+              country: 'CA'
+            }
+          }
+        );
+        }
+      break;
+    default:
+      console.log(`Unhandled event type ${event.type}`);
+  }
+
+  // Return a 200 response to acknowledge receipt of the event
+  response.send();
+});
 
 app.use(express.json());
 app.post('/api/create-checkout-session', async (req, res) => {
-  const { cart } = req.body;
+  const { cart, UID, stripeID } = req.body;
   // TODO: MAKE THIS CONDITIONAL LATER
-  const redirectURL = 'https://www.scrubatubclean.ca/';
+  const redirectURL = "http://localhost:3000";//'https://www.scrubatubclean.ca/';
   
   // take the extras array from cart and return an array of objects with the price id. If the frequency is "biweekly", use the "priceIDBiweekly" prop.
   // If the frequency is "monthly", use the "priceIDMonthly" prop. If the frequency is "weekly", use the "priceIDWeekly" prop. Otherwise, just add the "priceID" prop.
@@ -48,7 +122,9 @@ app.post('/api/create-checkout-session', async (req, res) => {
   }
   const session = await stripe.checkout.sessions.create({
     payment_method_types: ['card'],
-    
+    ...((cart.frequency.value == 'once' && !stripeID) && {customer_creation: 'always'}),
+    ...(stripeID && {customer: stripeID}),
+    client_reference_id: UID,
     // add meta data including cart.date.startTime, cart.date.endTime, cart.date.date, cart.misc.arrivalTimeFlexibility, cart.misc.homeEntranceMethod, cart.misc.cleanlinessRating, cart.misc.preferredTechnician, cart.misc.parkingInstructions, cart.misc.specialInstructions
     [`${cart.frequency.value == 'once' ? "payment_intent_data" : "subscription_data"}`]: {
       metadata: {
@@ -99,40 +175,14 @@ app.post('/api/create-checkout-session', async (req, res) => {
     }] : []),
     mode: cart.frequency.value == 'once' ? 'payment' : 'subscription',
     success_url: redirectURL + '?status=success',
-    cancel_url: redirectURL + '?status=cancel',
-    customer_email: cart.clientInfo.email
+    cancel_url: redirectURL + '?status=cancel'
   });
 
   res.json({ id: session.id });
 });
-app.post('/stripe-webhook', express.raw({type: 'application/json'}), (request, response) => {
-  const sig = request.headers['stripe-signature'];
 
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(request.body, sig, endpointSecret);
-  } catch (err) {
-    response.status(400).send(`Webhook Error: ${err.message}`);
-    return;
-  }
-
-  // Handle the event
-  switch (event.type) {
-    case 'payment_intent.succeeded':
-      const paymentIntentSucceeded = event.data.object;
-      // Then define and call a function to handle the event payment_intent.succeeded
-      break;
-    // ... handle other event types
-    default:
-      console.log(`Unhandled event type ${event.type}`);
-  }
-
-  // Return a 200 response to acknowledge receipt of the event
-  response.send();
-});
 app.get('/api/users', (req, res) => {
   // Logic for fetching users
   res.json({ message: 'Get all users' });
 });
-app.listen(process.env.PORT, () => console.log(process.env.PORT));
+app.listen(process.env.PORT, () => console.log('running on port 4242'));
