@@ -44,19 +44,21 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (requ
     response.status(400).send(`Webhook Error: ${err.message}`);
     return;
   }
-
+  let userRef;
   // Handle the event
   switch (event.type) {
+    
     case 'payment_intent.succeeded':
       const paymentIntentSucceeded = event.data.object;
       // Then define and call a function to handle the event payment_intent.succeeded
+      // query the database for the user with the stripeID that matches the paymentIntentSucceeded.customer and then
       break;
     // ... handle other event types
     case 'checkout.session.completed':
       const checkoutSessionCompleted = event.data.object;
       // if the checkoutSessionCompleted object does not have a customer_details.address.line1 property, then it is the first time the user has checked out
       // since it is the first time, we need to access the user document in the database using client_reference_id, and then set the stripeID from stripe to data base, and then get the billing address from the database onto stripe
-      const userRef = db.collection('users').doc(checkoutSessionCompleted.client_reference_id);
+      userRef = db.collection('users').doc(checkoutSessionCompleted.client_reference_id);
       if (!checkoutSessionCompleted.customer_details.address.line1) {
         const billingAddress = await userRef.get().then((doc) => doc.data().billingAddress);
         userRef.set({stripeID: checkoutSessionCompleted.customer}, {merge: true});
