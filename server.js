@@ -180,7 +180,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
     cancel_url: redirectURL + '?status=cancel'
   });
 
-  res.json({ id: session.id });
+  res.json({ id: session.id
+   });
 });
 
 app.get('/api/users', (req, res) => {
