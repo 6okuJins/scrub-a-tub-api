@@ -90,7 +90,7 @@ app.use(express.json());
 app.post('/api/create-checkout-session', async (req, res) => {
   const { cart, UID, stripeID } = req.body;
   // TODO: MAKE THIS CONDITIONAL LATER
-  const redirectURL = "http://localhost:3000";//'https://www.scrubatubclean.ca/';
+  const redirectURL = 'https://www.scrubatubclean.ca/';
   
   // take the extras array from cart and return an array of objects with the price id. If the frequency is "biweekly", use the "priceIDBiweekly" prop.
   // If the frequency is "monthly", use the "priceIDMonthly" prop. If the frequency is "weekly", use the "priceIDWeekly" prop. Otherwise, just add the "priceID" prop.
@@ -123,6 +123,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
     return 3;
   }
   const session = await stripe.checkout.sessions.create({
+    // TODO: combine all if statements to reduce complexity
     payment_method_types: ['card'],
     ...((cart.frequency.value == 'once' && !stripeID) && {customer_creation: 'always'}),
     ...(stripeID && {customer: stripeID}),
@@ -177,12 +178,19 @@ app.post('/api/create-checkout-session', async (req, res) => {
     }] : []),
     mode: cart.frequency.value == 'once' ? 'payment' : 'subscription',
     success_url: redirectURL + '?status=success',
+    // success_url: redirectURL + '/account/order/{CHECKOUT_SESSION_ID}',
     cancel_url: redirectURL + '?status=cancel'
+    // subscription_data: {
+    //   trial_end: 1693530796
+    // },
+    // payment_intent_data: {
+    //   capture_method: 'manual'
+    // }
   });
 
-  res.json({ id: session.id
-   });
+  res.json({ id: session.id });
 });
+
 
 app.get('/api/users', (req, res) => {
   // Logic for fetching users
