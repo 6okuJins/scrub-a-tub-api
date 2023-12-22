@@ -52,14 +52,17 @@ app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (requ
       const paymentIntentSucceeded = event.data.object;
       // Then define and call a function to handle the event payment_intent.succeeded
       // query the database for the user with the stripeID that matches the paymentIntentSucceeded.customer and then
+      // userRef = db.collection('users').doc(paymentIntentSucceeded.client_reference_id);
+      // // update the user's orders array with the new order
+      // userRef.set({orders: admin.firestore.FieldValue.arrayUnion({ submissionDate: paymentIntentSucceeded.created, stripePaymentIntentID: paymentIntentSucceeded.id, stripePaymentIntentStatus: paymentIntentSucceeded.status, stripePaymentIntentAmount: paymentIntentSucceeded.amount})}, {merge: true});
       break;
     // ... handle other event types
     case 'checkout.session.completed':
       const checkoutSessionCompleted = event.data.object;
       // if the checkoutSessionCompleted object does not have a customer_details.address.line1 property, then it is the first time the user has checked out
       // since it is the first time, we need to access the user document in the database using client_reference_id, and then set the stripeID from stripe to data base, and then get the billing address from the database onto stripe
-      userRef = db.collection('users').doc(checkoutSessionCompleted.client_reference_id);
       if (!checkoutSessionCompleted.customer_details.address.line1) {
+        userRef = db.collection('users').doc(checkoutSessionCompleted.client_reference_id);
         const billingAddress = await userRef.get().then((doc) => doc.data().billingAddress);
         userRef.set({stripeID: checkoutSessionCompleted.customer}, {merge: true});
         // update the customer's billing address on stripe
@@ -90,7 +93,7 @@ app.use(express.json());
 app.post('/api/create-checkout-session', async (req, res) => {
   const { cart, UID, stripeID } = req.body;
   // TODO: MAKE THIS CONDITIONAL LATER
-  const redirectURL = 'https://www.scrubatubclean.ca/';
+  const redirectURL = "https://www.mdom.dev/";//'https://www.scrubatubclean.ca/';
   
   // take the extras array from cart and return an array of objects with the price id. If the frequency is "biweekly", use the "priceIDBiweekly" prop.
   // If the frequency is "monthly", use the "priceIDMonthly" prop. If the frequency is "weekly", use the "priceIDWeekly" prop. Otherwise, just add the "priceID" prop.
@@ -177,8 +180,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       coupon:`bedbath${calculateCoupon()}`,
     }] : []),
     mode: cart.frequency.value == 'once' ? 'payment' : 'subscription',
-    success_url: redirectURL + '?status=success',
-    // success_url: redirectURL + '/account/order/{CHECKOUT_SESSION_ID}',
+    success_url: redirectURL + '/account/orders/{CHECKOUT_SESSION_ID}',
     cancel_url: redirectURL + '?status=cancel'
     // subscription_data: {
     //   trial_end: 1693530796
@@ -188,7 +190,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
     // }
   });
 
-  res.json({ id: session.id });
+  res.json({ id: session.id, subscriptionID: session.subscription, totalPrice: session.amount_total});
 });
 
 
