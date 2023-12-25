@@ -26,7 +26,7 @@ const db = admin.firestore();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const express = require('express');
 // get and deconstruct the services.test.json file into its component objects
-const { taxRateID, serviceType, houseDetails } = require('./services.test.json');
+const { taxRateID, serviceType, houseDetails } = require('./services.live.json');
 const app = express();
 const cors = require('cors');
 
@@ -198,4 +198,4 @@ app.get('/api/users', (req, res) => {
   // Logic for fetching users
   res.json({ message: 'Get all users' });
 });
-app.listen(process.env.PORT, () => console.log('running on port 4242'));
+app.listen(process.env.PORT, () => console.log('running...'));
