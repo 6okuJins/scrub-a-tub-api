@@ -30,7 +30,15 @@ const { taxRateID, serviceType, houseDetails } = require('./services.live.json')
 const app = express();
 const cors = require('cors');
 
-app.use(cors());
+const corsOptions = {
+  origin: ['http://localhost', 'https://mdom.dev', 'https://www.mdom.dev'],
+  allowedHeaders: ["Content-Type", "Authorization", "Access-Control-Allow-Methods", "Access-Control-Request-Headers"],
+  credentials: true,
+  enablePreflight: true
+}
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions))
 app.use(express.static('public'));
 // this needs to go before the express.json() middleware
 app.post('/stripe-webhook', express.raw({type: 'application/json'}), async (request, response) => {
