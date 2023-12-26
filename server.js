@@ -139,6 +139,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
     ...((cart.frequency.value == 'once' && !stripeID) && {customer_creation: 'always'}),
     ...(stripeID && {customer: stripeID}),
     client_reference_id: UID,
+    customer_email: cart.email,
+     
     // add meta data including cart.date.startTime, cart.date.endTime, cart.date.date, cart.misc.arrivalTimeFlexibility, cart.misc.homeEntranceMethod, cart.misc.cleanlinessRating, cart.misc.preferredTechnician, cart.misc.parkingInstructions, cart.misc.specialInstructions
     [`${cart.frequency.value == 'once' ? "payment_intent_data" : "subscription_data"}`]: {
       metadata: {
