@@ -26,7 +26,7 @@ const db = admin.firestore();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const express = require('express');
 // get and deconstruct the services.test.json file into its component objects
-const { taxRateID, serviceType, houseDetails } = require('./services.live.json');
+const { taxRateID, serviceType, houseDetails } = require('./services.production.json');
 const app = express();
 const cors = require('cors');
 
