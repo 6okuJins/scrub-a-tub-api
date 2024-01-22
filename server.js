@@ -101,7 +101,7 @@ app.use(express.json());
 app.post('/api/create-checkout-session', async (req, res) => {
   const { cart, UID, stripeID } = req.body;
   // TODO: MAKE THIS CONDITIONAL LATER
-  const redirectURL = "https://www.mdom.dev/";//'https://www.scrubatubclean.ca/';
+  const redirectURL = "https://www.scrubatubclean.com/";
   
   // take the extras array from cart and return an array of objects with the price id. If the frequency is "biweekly", use the "priceIDBiweekly" prop.
   // If the frequency is "monthly", use the "priceIDMonthly" prop. If the frequency is "weekly", use the "priceIDWeekly" prop. Otherwise, just add the "priceID" prop.
@@ -190,7 +190,7 @@ app.post('/api/create-checkout-session', async (req, res) => {
       coupon:`bedbath${calculateCoupon()}`,
     }] : []),
     mode: cart.frequency.value == 'once' ? 'payment' : 'subscription',
-    success_url: redirectURL + '/account/orders/{CHECKOUT_SESSION_ID}',
+    success_url: redirectURL + 'account/orders/{CHECKOUT_SESSION_ID}',
     cancel_url: redirectURL + '?status=cancel'
     // subscription_data: {
     //   trial_end: 1693530796
